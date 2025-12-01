@@ -2,9 +2,8 @@
 ISOM5240 Assignment - Children's Storytelling Application
 Student ID: 2510gnam08, S029
 Name: Kartavya Atri
-Defining Target: Children aged is ~3-10 years 
+Defining Target: Children aged is ~3-10 years Also hope its ok to set the temperature for creativity 
 """
-
 import streamlit as st
 from transformers import pipeline
 from PIL import Image
@@ -12,251 +11,247 @@ import scipy.io.wavfile
 import numpy as np
 import io
 
-# ============================================================
-# PAGE SETUP
-# ============================================================
-st.set_page_config(
-    page_title="Story Generator",
-    page_icon=":)",
-    layout="centered"
-)
+# Set up the page
+st.set_page_config(page_title="Story Generator", layout="centered")
 
-# ============================================================
-# Added additional CACHE MODELS, if i can save the cache (Trying) (Loads once, then cached)
-# Doing all the 3 togethger, hope its okk!
-# ============================================================
 
+# Load the models
+# Note: These functions cache the models so they don't reload every time
 @st.cache_resource
-def load_image_caption_model():
-    """Load image-to-text model"""
-    return pipeline("image-to-text", model="nlpconnect/vit-gpt2-image-captioning")
+def load_image_model():
+    # Using image to text pipeline for captions
+    model = pipeline("image-to-text", model="nlpconnect/vit-gpt2-image-captioning")
+    return model
+    
 
 @st.cache_resource
 def load_story_model():
-    """Load story generation model"""
-    return pipeline("text-generation", model="distilgpt2")
+    model = pipeline("text-generation", model="distilgpt2")
+    return model
 
 @st.cache_resource
 def load_audio_model():
-    """Load text-to-speech model"""
-    return pipeline("text-to-speech", model="espnet/kan-bayashi_ljspeech_vits")
+    model = pipeline("text-to-speech", model="facebook/mms-tts-eng")
+    return model
 
 
-# ============================================================
-# FUNCTION 1: IMAGE TO TEXT
-# ============================================================
-
-def img2text(image):
+# HEre is the Function to get caption from image
+def get_caption(image):
     """
-    Convert image to descriptive caption
-    Model: nlpconnect/vit-gpt2-image-captioning
+    Takes an image and returns a text caption
     """
-    model = load_image_caption_model()
-    result = model(image)
+    caption_model = load_image_model()
+    result = caption_model(image)
+    # Get the text from the result
     text = result[0]["generated_text"]
     return text
 
 
-# ============================================================
-# FUNCTION 2: TEXT TO STORY
-# ============================================================
-
-def text2story(text):
+# Here adding the function to generate story from caption
+def generate_story(caption):
     """
-    Generate children's story from caption
-    Model: distilgpt2
-    Length: 50-100 words
+    Takes a caption and generates a story
+    Story should be at least 50 words (50-100 words as mentioned in the lecture) for the assignment
     """
-    model = load_story_model()
+    story_model = load_story_model()
     
-    prompt = f"Write a short magical story for children about {text}. Once upon a time,"
+    # Create a prompt for children
+    # TODO: Maybe make this prompt better later
+    prompt = f"Write a fun story for kids about {caption}. Once upon a time, "
     
-    result = model(
+    # Generate the story
+    # Note: max_new_tokens controls length - might need to adjust
+    output = story_model(
         prompt,
-        max_new_tokens=120,
-        temperature=0.75,
+        max_new_tokens=120,  # Changed from 100 to get more words
+        temperature=0.7,     # Controls randomness
         do_sample=True,
-        repetition_penalty=1.2,
-        pad_token_id=50256
+        pad_token_id=50256   # This is important for GPT2 models
     )
     
-    story = result[0]['generated_text']
-    story = story.replace(prompt, "Once upon a time,").strip()
+    # Extract the story text
+    story_text = output[0]['generated_text']
     
-    words = story.split()
-    if len(words) > 100:
-        story = ' '.join(words[:100]) + '.'
+    # Remove the prompt part from the story
+    # FIXME: This might not work perfectly every time
+    story_text = story_text.replace(prompt, "Once upon a time, ")
     
-    return story
+    # Make sure story isn't too long
+    words = story_text.split()
+    if len(words) > 120:  # Limit to around 120 words
+        story_text = ' '.join(words[:120])
+        # Add period at end if missing
+        if not story_text.endswith('.'):
+            story_text = story_text + '.'
+    
+    return story_text
 
 
-# ============================================================
-# FUNCTION 3: TEXT TO AUDIO
-# ============================================================
-
-def text2audio(story_text):
+# Function to convert text to speech
+def text_to_speech(text):
     """
-    Convert story to speech
-    Model: espnet/kan-bayashi_ljspeech_vits
+    Converts story text to audio
+    Returns audio data and sampling rate
     """
-    model = load_audio_model()
-    speech = model(story_text)
+    tts_model = load_audio_model()
     
-    audio_data = np.array(speech["audio"]).flatten()
-    sampling_rate = speech["sampling_rate"]
+    # Generate speech from text
+    speech = tts_model(text)
     
-    return audio_data, sampling_rate
+    # Get audio data
+    # BUG FIX: Need to flatten the array properly
+    audio = np.array(speech["audio"]).flatten()
+    rate = speech["sampling_rate"]
+    
+    return audio, rate
 
 
-# ============================================================
-# MAIN APPLICATION
-# ============================================================
-
+# Main application
 def main():
-    # Header
-    st.title(" Children's Story Generator")
-    st.markdown("### Transform Images into Magical Audio Stories")
-    st.write("*For children aged 3-10 years*")
     
-    # Sidebar
-    with st.sidebar:
-        st.header("About")
-        st.markdown("""
-        **Three-Stage AI Pipeline:**
-        
-        **Stage 1:** Image → Caption  
-        `vit-gpt2-image-captioning`
-        
-        **Stage 2:** Caption → Story  
-        `distilgpt2` (50-100 words)
-        
-        **Stage 3:** Story → Audio  
-        `VITS TTS`
-        """)
-        
-        st.info("✨ **Assignment:** ISOM5240")
-        st.warning("⏱️ First run takes 3-5 minutes (loading models)")
+    # Title and description
+    st.title("Children's Story Generator")
+    st.write("Upload an image and get a story with audio")
+    st.write("Made for children aged 3-10 years")
     
-    st.markdown("---")
+    # Sidebar with info
+    st.sidebar.header("Assignment Info")
+    st.sidebar.write("ISOM5240 Individual Assignment")
+    st.sidebar.write("Student ID: YOUR_STUDENT_ID")
     
-    # Image upload
-    st.subheader("📸 Step 1: Upload Image")
+    st.sidebar.subheader("Models Used")
+    st.sidebar.text("1. Image to Text:")
+    st.sidebar.code("nlpconnect/vit-gpt2-image-captioning")
+    
+    st.sidebar.text("2. Story Generation:")
+    st.sidebar.code("distilgpt2")
+    
+    st.sidebar.text("3. Text to Speech:")
+    st.sidebar.code("facebook/mms-tts-eng")
+    
+    st.sidebar.info("Story length: 50+ words")
+    
+    # Main content
+    st.write("---")
+    st.subheader("Step 1: Upload an Image")
+    
+    # File uploader
     uploaded_file = st.file_uploader(
-        "Choose an image (JPG, PNG)",
+        "Choose an image file",
         type=['jpg', 'jpeg', 'png']
     )
     
-    if uploaded_file:
-        # Show image
+    # Check if file was uploaded
+    if uploaded_file is not None:
+        
+        # Open and display the image
         image = Image.open(uploaded_file)
+        st.image(image, caption="Your uploaded image", width=400)
         
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            st.image(image, caption="Your Image", use_container_width=True)
-        with col2:
-            st.write("**File Info:**")
-            st.write(f"📁 {uploaded_file.name}")
-            st.write(f"📏 {image.size[0]}×{image.size[1]} px")
+        # Show file details
+        st.write(f"File name: {uploaded_file.name}")
+        st.write(f"Image size: {image.size[0]} x {image.size[1]} pixels")
         
-        st.markdown("---")
+        st.write("---")
         
-        # Generate button
-        if st.button("✨ Generate Story & Audio", type="primary"):
+        # Button to generate story
+        if st.button("Generate Story and Audio"):
             
+            # Show progress bar
             progress = st.progress(0)
-            status = st.empty()
             
             try:
-                # ===== STAGE 1 =====
-                st.markdown("### Stage 1: Image Analysis")
-                status.text("Analyzing image...")
-                progress.progress(20)
+                # Step 1: Get caption from image
+                st.write("Step 2: Analyzing image...")
+                progress.progress(25)
                 
-                caption = img2text(image)
+                caption = get_caption(image)
+                st.success("Image analyzed successfully")
+                st.write(f"Caption: {caption}")
                 
-                st.success(f"**Caption:** {caption}")
-                progress.progress(35)
-                st.write("✅ Stage 1 Complete!")
+                st.write("---")
                 
-                st.markdown("---")
-                
-                # ===== STAGE 2 =====
-                st.markdown("### 📖 Stage 2: Story Creation")
-                status.text("Writing story...")
+                # Step 2: Generate story
+                st.write("Step 3: Generating story...")
                 progress.progress(50)
                 
-                story = text2story(caption)
+                story = generate_story(caption)
                 word_count = len(story.split())
                 
-                st.write("**Generated Story:**")
+                st.success("Story generated successfully")
+                st.write(f"Story ({word_count} words):")
                 st.info(story)
-                st.write(f"*Length: {word_count} words*")
                 
-                if 50 <= word_count <= 100:
-                    st.success(f"✅ Stage 2 Complete! Perfect length: {word_count} words")
+                # Check word count requirement
+                if word_count >= 50:
+                    st.success(f"Story has {word_count} words (meets 50+ requirement)")
                 else:
-                    st.warning(f"⚠️ Word count: {word_count}")
+                    st.warning(f"Story only has {word_count} words (need 50+)")
                 
-                progress.progress(70)
-                st.markdown("---")
+                st.write("---")
                 
-                # ===== STAGE 3 =====
-                st.markdown("### 🎙️ Stage 3: Audio Generation")
-                status.text("Converting to speech...")
-                progress.progress(85)
+                # Step 3: Generate audio
+                st.write("Step 4: Converting to audio...")
+                progress.progress(75)
                 
-                audio_data, sampling_rate = text2audio(story)
+                audio_data, sample_rate = text_to_speech(story)
                 
-                # Save to buffer
+                # Save audio to bytes for playback
                 audio_buffer = io.BytesIO()
-                scipy.io.wavfile.write(audio_buffer, sampling_rate, audio_data)
+                scipy.io.wavfile.write(audio_buffer, sample_rate, audio_data)
                 audio_bytes = audio_buffer.getvalue()
                 
                 progress.progress(100)
-                status.empty()
                 
-                # Play audio
+                st.success("Audio generated successfully")
+                
+                # Display audio player
                 st.audio(audio_bytes, format='audio/wav')
                 
-                # Download
+                # Download button
                 st.download_button(
-                    "💾 Download Audio",
+                    "Download Audio File",
                     audio_bytes,
                     "story.wav",
                     "audio/wav"
                 )
                 
-                duration = len(audio_data) / sampling_rate
-                st.success(f"✅ Stage 3 Complete! Audio: {duration:.1f}s")
+                # Calculate and show duration
+                duration = len(audio_data) / sample_rate
+                st.write(f"Audio length: {duration:.1f} seconds")
                 
-                # Summary
-                st.markdown("---")
-                st.balloons()
-                st.success("🎉 All stages completed successfully!")
+                st.write("---")
+                st.success("All done!")
                 
-                with st.expander(" View Summary"):
-                    st.write(f"""
-                    - **Image:** {uploaded_file.name}
-                    - **Caption:** {caption}
-                    - **Story Length:** {word_count} words
-                    - **Audio Duration:** {duration:.1f} seconds
-                    """)
+                # Summary at the end
+                st.subheader("Summary")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.write("Input:")
+                    st.write(f"- Image: {uploaded_file.name}")
+                
+                with col2:
+                    st.write("Output:")
+                    st.write(f"- Story: {word_count} words")
+                    st.write(f"- Audio: {duration:.1f} sec")
                 
             except Exception as e:
-                st.error(f"❌ Error: {str(e)}")
-                st.info("Please try again or use a different image")
+                # Error handling
+                st.error(f"Something went wrong: {str(e)}")
+                st.write("Please try again with a different image")
     
     else:
-        st.info(" Upload an image to begin!")
+        # Show help text when no image uploaded
+        st.info("Please upload an image to start")
         
-        st.markdown("---")
-        st.write("** Try these image types:**")
-        
-        col1, col2, col3 = st.columns(3)
-        col1.write(" **Animals**\nPets, wildlife")
-        col2.write(" **Nature**\nLandscapes, flowers")
-        col3.write(" **Objects**\nToys, vehicles")
+        st.write("---")
+        st.write("Tips:")
+        st.write("- Use clear images for best results")
+        st.write("- Try images of animals, nature, or objects")
+        st.write("- JPG and PNG formats are supported")
 
 
+# Run the app
 if __name__ == "__main__":
     main()
