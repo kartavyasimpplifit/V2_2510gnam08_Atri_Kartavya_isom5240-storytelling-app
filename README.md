@@ -3,30 +3,25 @@
 
 **ISOM5240 Assignment - Storytelling Application**
 
-## 📖 Description
 
-Generate magical stories from images with audio narration for children aged 3-10 years.
+## Description
 
-## ✨ Features
+This is a storytelling application that generates stories from images using Hugging Face models.
+The story is also converted to audio for children to listen.
 
-- **Image to Caption** - Describe uploaded images
-- **Story Generation** - Create 50-100 word stories
-- **Text-to-Speech** - Convert stories to audio
+## Models Used
 
-## AI Models Used
+1. Image to Text: nlpconnect/vit-gpt2-image-captioning
+2. Story Generation: distilgpt2  
+3. Text to Speech: facebook/mms-tts-eng
 
-1. **nlpconnect/vit-gpt2-image-captioning** - Image analysis
-2. **distilgpt2** - Story generation
-3. **espnet/kan-bayashi_ljspeech_vits** - Text-to-speech
+## Requirements
 
-## Live Demo
+- Story must be at least 50 words
+- Target audience is children aged 3-10 years
+- Uses Hugging Face transformers pipelines
 
-[Click here to try the app](Hey, i Need to add the link later)
+## How to Run
 
-## 👨‍💻 Technologies
-
-- Streamlit
-- Hugging Face Transformers
-- PyTorch
-- Python 3.10+
-
+```bash
+streamlit run app.py
