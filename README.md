@@ -1,4 +1,4 @@
-================================================================================
+
 ISOM5240 ASSIGNMENT - CHILDREN'S STORY GENERATOR
 
 Student Name: Kartavya Atri
@@ -66,10 +66,9 @@ REQUIREMENTS MET
 ✓ Provides audio output
 ✓ Image upload functionality
 ✓ Target audience: children 3-10 years
-
-================================================================================
+==
 KEY DECISIONS
-================================================================================
+==
 
 Why gpt2 instead of distilgpt2?
 - distilgpt2 is smaller (319 MB) but stories were repetitive and boring
