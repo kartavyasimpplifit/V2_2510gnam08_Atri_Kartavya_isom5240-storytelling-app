@@ -1,13 +1,11 @@
 """
 ISOM5240 Assignment - Children's Storytelling Application
 Student ID: 2510gnam08, S029
-Name: Kartavya Atri
-Defining Target: Children aged is ~3-10 years Also hope its ok to set the temperature for creativity 
+Name: Kartavya Atri, NUS Singapore
+Defining Target: Children aged is ~3-10 years Also hope its ok to set the temperature for creativity and limiting tokens for efficiency.  
 """
 
-"""
-ISOM5240 Individual Assignment Revised, Earlier was not giving bad story so usuing vit-gpt2-image-captioning
-Using optimal small models for best quality"""
+""
 
 import streamlit as st
 from transformers import pipeline
@@ -288,3 +286,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+"
+"""Note for prof: Usuing vit-gpt2-image-captioning, dist. model was giving bad story :((. Tried 3-4 models but output seems better with this.  """
