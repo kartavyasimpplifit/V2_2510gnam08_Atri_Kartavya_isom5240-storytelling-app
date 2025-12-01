@@ -286,5 +286,5 @@ def main():
 
 if __name__ == "__main__":
     main()
-"
+
 #Note for prof: Usuing vit-gpt2-image-captioning, dist. model was giving bad story :((. Tried 3-4 models but output seems better with this
