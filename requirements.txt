@@ -1,0 +1,9 @@
+streamlit
+transformers
+torch
+torchvision
+Pillow
+scipy
+numpy
+accelerate
+sentencepiece
