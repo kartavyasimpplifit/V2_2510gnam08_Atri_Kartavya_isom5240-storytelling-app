@@ -4,5 +4,11 @@
     "ai_score": 88,
     "ai_level": "Excellent (優秀)",
     "teacher_correction": "Needs Improvement"
+  },
+  {
+    "essay": "Hi",
+    "ai_score": 63,
+    "ai_level": "Good (良好)",
+    "teacher_correction": "Needs Improvement"
   }
 ]
